@@ -23,19 +23,22 @@ import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.BriefLogFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NodeCrawler {
 
 	// Global peerGroup
 	private static PeerGroup peerGroup;
 	
+	private static final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
+	
 	public static void main(String[] args) {
 		
-		// TODO: add more logging functions than just basic BitcoinJ.
 		// This line makes the log output more compact and easily read, especially when using the JDK log adapter.
         BriefLogFormatter.init();
         if (args.length < 1) {
-            System.err.println("Usage: address-to-send-back-to [regtest|testnet]");
+            System.err.println("Usage: [Mainnet|Testnet|Regtest]");
             return;
         }
 		
@@ -46,15 +49,17 @@ public class NodeCrawler {
 		// Determine which network from first argument
 		String mainTestRegNet = args[0];
 		
+		log.info("Network set to {}", mainTestRegNet);
+		
 		// Determine network for network parameters
 		switch(mainTestRegNet)
 		{
 		// Testnet
-		case "testnet":
+		case "Testnet":
 			params = TestNet3Params.get();
-		    break;
+			break;
 		// Regtest network
-		case "regtest":
+		case "Regtest":
 			params = RegTestParams.get();
 		    break;
 		// Mainnet default
@@ -87,6 +92,7 @@ public class NodeCrawler {
 			try {
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
+				log.error("Sleep Interrupted Exception");
 				e.printStackTrace();
 			}
 		}
@@ -113,11 +119,11 @@ public class NodeCrawler {
 	    	pw.close();
 	    	// Remove Duplicates
 	    	stripDuplicatesFromFile("Nodes.txt");
+	    	log.info("Recorded {}", address);
 		}
 		catch(IOException ioe){
-	    	 System.out.println("Exception occurred:");
-	    	 ioe.printStackTrace();
-		
+	    	 log.error("IOException occured.");
+	    	 ioe.printStackTrace();		
 		}
 	}
 	
@@ -133,6 +139,7 @@ public class NodeCrawler {
 			{
 				// Address
 				InetSocketAddress address = addresses.get(i).getSocketAddress();
+				log.info("Found {} and attempting connection", address);
 				peerGroup.connectTo(address);
 				// Write address to file
 				addressToFile(address);
