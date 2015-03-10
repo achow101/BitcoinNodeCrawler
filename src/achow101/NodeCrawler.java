@@ -26,57 +26,31 @@ import org.bitcoinj.utils.BriefLogFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NodeCrawler {
 
+public class NodeCrawler {
+	
+	/*
+	 * Node Crawler provides other programs with the addresses that it finds on the Bitcoin network.
+	 * The program requires that the client have the connection and everything required for the Bitcoin
+	 * network. This program simply returns addresses.
+	 */
+	
+	// TODO: add options to pause/quit
+	
 	// Global peerGroup
-	private static PeerGroup peerGroup;
+	private PeerGroup globalPeerGroup;
 	
-	private static final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
+	private final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
 	
-	public static void main(String[] args) {
+	public NodeCrawler(PeerGroup peerGroup) {
 		
 		// This line makes the log output more compact and easily read, especially when using the JDK log adapter.
         BriefLogFormatter.init();
-        if (args.length < 1) {
-            System.err.println("Usage: [Mainnet|Testnet|Regtest]");
-            return;
-        }
-		
-        // BitcoinJ Network parameters
-		NetworkParameters params;
-		
-		// TODO: Add optional command line arguments.
-		// Determine which network from first argument
-		String mainTestRegNet = args[0];
-		
-		log.info("Network set to {}", mainTestRegNet);
-		
-		// Determine network for network parameters
-		switch(mainTestRegNet)
-		{
-		// Testnet
-		case "Testnet":
-			params = TestNet3Params.get();
-			break;
-		// Regtest network
-		case "Regtest":
-			params = RegTestParams.get();
-		    break;
-		// Mainnet default
-		default:
-			params = MainNetParams.get();
-		    break;		
-		}
-		
-		// New Peer Group which manages connections to the Bitcoin Network
-		peerGroup = new PeerGroup(params);
-				
-		// Connect to network and start the PeerGroup thread
-		peerGroup.addPeerDiscovery(new DnsDiscovery(params));
-		peerGroup.startAsync();
-		
+        
+        globalPeerGroup = peerGroup;
+        
 		// Listen for new peer connections
-		peerGroup.addEventListener(new AbstractPeerEventListener() {
+		globalPeerGroup.addEventListener(new AbstractPeerEventListener() {
 		    @Override
 		    public void onPeerConnected(Peer peer, int peerCount) {
 		    	// Write peer to file
@@ -86,20 +60,10 @@ public class NodeCrawler {
 		    }
 		});
 		
-		// Keep this thread alive while Peer Group and listener threads work.
-		while(true)
-		{
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-				log.error("Sleep Interrupted Exception");
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	// Writes out each address to a text file
-	private static void addressToFile(InetSocketAddress address)
+	private void addressToFile(InetSocketAddress address)
 	{
 		try
 		{
@@ -128,7 +92,7 @@ public class NodeCrawler {
 	}
 	
 	// Get addresses from each peer
-	private static void getMorePeerAddresses(Peer peer)
+	private void getMorePeerAddresses(Peer peer)
 	{
 		List<PeerAddress> addresses;
 		try {
@@ -140,7 +104,7 @@ public class NodeCrawler {
 				// Address
 				InetSocketAddress address = addresses.get(i).getSocketAddress();
 				log.info("Found {} and attempting connection", address);
-				peerGroup.connectTo(address);
+				globalPeerGroup.connectTo(address);
 				// Write address to file
 				addressToFile(address);
 			}
