@@ -1,6 +1,10 @@
 package achow101;
 
+import java.net.InetSocketAddress;
+
+import org.bitcoinj.core.AbstractPeerEventListener;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerGroup;
 import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.MainNetParams;
@@ -13,8 +17,11 @@ import org.slf4j.LoggerFactory;
 public class NodeCrawlerStandalone {
 	
 	private final static Logger log = LoggerFactory.getLogger(NodeCrawlerStandalone.class);
+	
+	private static int connectedPeers;
 
 	// TODO: Make nice looking console GUI
+	// TODO: Add optional CLI options
 	
 	public static void main(String[] args) {
 		
@@ -60,6 +67,18 @@ public class NodeCrawlerStandalone {
         
 		NodeCrawler nodeCrawler = new NodeCrawler(peerGroup);
 		
+		// Listen for new peer connections
+		peerGroup.addEventListener(new AbstractPeerEventListener() {
+		    @Override
+		    public void onPeerConnected(Peer peer, int peerCount) {
+		    	connectedPeers = peerGroup.numConnectedPeers();
+		    }
+		    @Override
+		    public void onPeerDisconnected(Peer peer, int peerCount)
+		    {
+		    	connectedPeers = peerGroup.numConnectedPeers();
+		    }
+		});
 
 		// Keep this thread alive while Peer Group and listener threads work.
 		while(true)

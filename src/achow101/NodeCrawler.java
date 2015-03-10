@@ -35,10 +35,10 @@ public class NodeCrawler {
 	 * network. This program simply returns addresses.
 	 */
 	
-	// TODO: add options to pause/quit
-	
 	// Global peerGroup
 	private PeerGroup globalPeerGroup;
+	
+	public static int discoveredPeers;
 	
 	private final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
 	
@@ -115,6 +115,7 @@ public class NodeCrawler {
 	
 	// Remove duplicate entries
 	public static void stripDuplicatesFromFile(String filename) {
+		int discoveredPeersTemp = 0;
 	    BufferedReader reader;
 		try {
 			reader = new BufferedReader(new FileReader(filename));
@@ -122,7 +123,9 @@ public class NodeCrawler {
 		    String line;
 		    while ((line = reader.readLine()) != null) {
 		        lines.add(line);
+		        discoveredPeersTemp++;
 		    }
+		    discoveredPeers = discoveredPeersTemp;
 		    reader.close();
 		    BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
 		    for (String unique : lines) {
