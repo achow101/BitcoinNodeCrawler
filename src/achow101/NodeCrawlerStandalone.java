@@ -1,7 +1,5 @@
 package achow101;
 
-import java.net.InetSocketAddress;
-
 import org.bitcoinj.core.AbstractPeerEventListener;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Peer;
@@ -13,10 +11,11 @@ import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.utils.BriefLogFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.impl.SimpleLogger;
 
 public class NodeCrawlerStandalone {
 	
-	private final static Logger log = LoggerFactory.getLogger(NodeCrawlerStandalone.class);
+	
 	
 	private static int connectedPeers;
 
@@ -25,12 +24,14 @@ public class NodeCrawlerStandalone {
 	
 	public static void main(String[] args) {
 		
-		// This line makes the log output more compact and easily read, especially when using the JDK log adapter.
-        BriefLogFormatter.init();
-        if (args.length < 1) {
-            System.err.println("Usage: [Mainnet|Testnet|Regtest]");
-            return;
-        }
+		// Set Logger Properties. Log outputs to CrawlerLog.txt
+		// System.setProperty(SimpleLogger.LOG_FILE_KEY, "CrawlerLog.txt");
+		System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, "true");
+		System.setProperty(SimpleLogger.SHOW_LOG_NAME_KEY, "false");
+		System.setProperty(SimpleLogger.SHOW_THREAD_NAME_KEY, "false");
+		System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "HH:mm:ss:SS MM:DD:YYYY");
+		
+		final Logger log = LoggerFactory.getLogger(NodeCrawlerStandalone.class);
         
         // BitcoinJ Network parameters
 		NetworkParameters params;
