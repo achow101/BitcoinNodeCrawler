@@ -21,9 +21,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.SimpleLogger;
 
-public class BitcoinNodeCrawler {
+public class BitcoinNodeCrawler implements Runnable {
 	
 	private static int connectedPeers;
+	private static boolean quit = false;
+	
+	Scanner scan = new Scanner(System.in);
 	
 	public static void main(String[] args) {
 		
@@ -33,7 +36,6 @@ public class BitcoinNodeCrawler {
 		// Variables
 		String mainTestRegNet = "mainnet";
 		String outfile = "Nodes.txt";
-		Scanner scan = new Scanner(System.in);
 		
 		// Set Logger Properties. Log outputs to CrawlerLog.txt
 		System.setProperty(SimpleLogger.LOG_FILE_KEY, "CrawlerLog.txt");
@@ -140,28 +142,34 @@ public class BitcoinNodeCrawler {
 		System.out.println("\nStatistics");
 		System.out.println("**********");
 		System.out.println("Nodes connected:\t\tNodesDiscovered:");
+		
+		(new Thread(new BitcoinNodeCrawler())).start();
 
 		// Keep this thread alive while Peer Group and listener threads work.
-		while(true)
+		do
 		{
 			try {
-				System.out.print(connectedPeers + "\t\t\t\t" + nodeCrawler.getDiscoveredPeers());
+				System.out.print(connectedPeers + "\t\t\t\t" + nodeCrawler.getDiscoveredPeers() + "\r");
 				Thread.sleep(1000);
-				System.out.print("\b\b\b\b\b\b\b\b\b\b\n");
+				//System.out.print("\r");
 			} catch (InterruptedException e) {
 				log.error("Sleep Interrupted Exception");
 				e.printStackTrace();
 			}
 			
-			// TODO: FIX QUIT!!
-			/*if(scan.next().equalsIgnoreCase("q") || scan.next().equalsIgnoreCase("quit"))
-			{
-				peerGroup.stop();
-				break;
-			}*/
+		} while(!quit);
+
+	}
+
+	@Override
+	public void run() {
+		
+		if(scan.hasNext("q"))
+		{
+			quit = true;
+			return;
 		}
 		
-
 	}
 
 }
