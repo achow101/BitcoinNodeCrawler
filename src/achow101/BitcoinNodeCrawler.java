@@ -1,5 +1,7 @@
 package achow101;
 
+import java.util.Scanner;
+
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -22,8 +24,6 @@ import org.slf4j.impl.SimpleLogger;
 public class BitcoinNodeCrawler {
 	
 	private static int connectedPeers;
-
-	// TODO: Make nice looking console GUI
 	
 	public static void main(String[] args) {
 		
@@ -33,9 +33,10 @@ public class BitcoinNodeCrawler {
 		// Variables
 		String mainTestRegNet = "mainnet";
 		String outfile = "Nodes.txt";
+		Scanner scan = new Scanner(System.in);
 		
 		// Set Logger Properties. Log outputs to CrawlerLog.txt
-		// System.setProperty(SimpleLogger.LOG_FILE_KEY, "CrawlerLog.txt");
+		System.setProperty(SimpleLogger.LOG_FILE_KEY, "CrawlerLog.txt");
 		System.setProperty(SimpleLogger.SHOW_DATE_TIME_KEY, "true");
 		System.setProperty(SimpleLogger.SHOW_LOG_NAME_KEY, "false");
 		System.setProperty(SimpleLogger.SHOW_THREAD_NAME_KEY, "false");
@@ -95,7 +96,7 @@ public class BitcoinNodeCrawler {
 	    }
 	    
 		final Logger log = LoggerFactory.getLogger(BitcoinNodeCrawler.class);
-	    
+		
 		log.info("Network set to {}", mainTestRegNet);
 		
 		// Determine network for network parameters
@@ -132,17 +133,34 @@ public class BitcoinNodeCrawler {
 		    	connectedPeers = peerGroup.numConnectedPeers();
 		    }
 		});
+		
+		System.out.println("Bitcoin Node Crawler");
+		System.out.println("********************");
+		System.out.println("Options [q]uit");
+		System.out.println("\nStatistics");
+		System.out.println("**********");
+		System.out.println("Nodes connected:\t\tNodesDiscovered:");
 
 		// Keep this thread alive while Peer Group and listener threads work.
 		while(true)
 		{
 			try {
-				Thread.sleep(2000);
+				System.out.print(connectedPeers + "\t\t\t\t" + nodeCrawler.getDiscoveredPeers());
+				Thread.sleep(1000);
+				System.out.print("\b\b\b\b\b\b\b\b\b\b\n");
 			} catch (InterruptedException e) {
 				log.error("Sleep Interrupted Exception");
 				e.printStackTrace();
 			}
+			
+			// TODO: FIX QUIT!!
+			/*if(scan.next().equalsIgnoreCase("q") || scan.next().equalsIgnoreCase("quit"))
+			{
+				peerGroup.stop();
+				break;
+			}*/
 		}
+		
 
 	}
 

@@ -112,7 +112,7 @@ public class NodeCrawler {
 	}
 	
 	// Remove duplicate entries
-	public static void stripDuplicatesFromFile(String filename) {
+	public void stripDuplicatesFromFile(String filename) {
 		int discoveredPeersTemp = 0;
 	    BufferedReader reader;
 		try {
@@ -135,5 +135,10 @@ public class NodeCrawler {
 			e.printStackTrace();
 		}
 	    
+	}
+	
+	public int getDiscoveredPeers()
+	{
+		return discoveredPeers;
 	}
 }
