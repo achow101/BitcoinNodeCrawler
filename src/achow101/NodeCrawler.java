@@ -14,69 +14,40 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.bitcoinj.core.AbstractPeerEventListener;
-import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerAddress;
 import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.net.discovery.DnsDiscovery;
-import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.RegTestParams;
-import org.bitcoinj.params.TestNet3Params;
-import org.bitcoinj.utils.BriefLogFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NodeCrawler {
 
+public class NodeCrawler {
+	
+	/*
+	 * Node Crawler provides other programs with the addresses that it finds on the Bitcoin network.
+	 * The program requires that the client have the connection and everything required for the Bitcoin
+	 * network. This program simply returns addresses.
+	 */
+	
 	// Global peerGroup
-	private static PeerGroup peerGroup;
+	private PeerGroup globalPeerGroup;
 	
-	private static final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
+	public static int discoveredPeers;
 	
-	public static void main(String[] args) {
-		
-		// This line makes the log output more compact and easily read, especially when using the JDK log adapter.
-        BriefLogFormatter.init();
-        if (args.length < 1) {
-            System.err.println("Usage: [Mainnet|Testnet|Regtest]");
-            return;
-        }
-		
-        // BitcoinJ Network parameters
-		NetworkParameters params;
-		
-		// TODO: Add optional command line arguments.
-		// Determine which network from first argument
-		String mainTestRegNet = args[0];
-		
-		log.info("Network set to {}", mainTestRegNet);
-		
-		// Determine network for network parameters
-		switch(mainTestRegNet)
-		{
-		// Testnet
-		case "Testnet":
-			params = TestNet3Params.get();
-			break;
-		// Regtest network
-		case "Regtest":
-			params = RegTestParams.get();
-		    break;
-		// Mainnet default
-		default:
-			params = MainNetParams.get();
-		    break;		
-		}
-		
-		// New Peer Group which manages connections to the Bitcoin Network
-		peerGroup = new PeerGroup(params);
-				
-		// Connect to network and start the PeerGroup thread
-		peerGroup.addPeerDiscovery(new DnsDiscovery(params));
-		peerGroup.startAsync();
-		
+	private final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
+	
+	private String outfile = "Nodes.txt";
+	
+	public NodeCrawler(PeerGroup peerGroup, String filename) {
+		        
+		// Set Peer Group
+        globalPeerGroup = peerGroup;
+        
+        // Set output file name
+        outfile = filename;
+        
 		// Listen for new peer connections
-		peerGroup.addEventListener(new AbstractPeerEventListener() {
+		globalPeerGroup.addEventListener(new AbstractPeerEventListener() {
 		    @Override
 		    public void onPeerConnected(Peer peer, int peerCount) {
 		    	// Write peer to file
@@ -86,25 +57,15 @@ public class NodeCrawler {
 		    }
 		});
 		
-		// Keep this thread alive while Peer Group and listener threads work.
-		while(true)
-		{
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-				log.error("Sleep Interrupted Exception");
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	// Writes out each address to a text file
-	private static void addressToFile(InetSocketAddress address)
+	private void addressToFile(InetSocketAddress address)
 	{
 		try
 		{
 			// Set file
-	        File file = new File("Nodes.txt");
+	        File file = new File(outfile);
 	        // Create file if it does not exist
 	    	if(!file.exists())
 	    	{
@@ -118,7 +79,7 @@ public class NodeCrawler {
 	    	pw.println(address.toString());
 	    	pw.close();
 	    	// Remove Duplicates
-	    	stripDuplicatesFromFile("Nodes.txt");
+	    	stripDuplicatesFromFile(outfile);
 	    	log.info("Recorded {}", address);
 		}
 		catch(IOException ioe){
@@ -128,7 +89,7 @@ public class NodeCrawler {
 	}
 	
 	// Get addresses from each peer
-	private static void getMorePeerAddresses(Peer peer)
+	private void getMorePeerAddresses(Peer peer)
 	{
 		List<PeerAddress> addresses;
 		try {
@@ -140,7 +101,7 @@ public class NodeCrawler {
 				// Address
 				InetSocketAddress address = addresses.get(i).getSocketAddress();
 				log.info("Found {} and attempting connection", address);
-				peerGroup.connectTo(address);
+				globalPeerGroup.connectTo(address);
 				// Write address to file
 				addressToFile(address);
 			}
@@ -150,7 +111,8 @@ public class NodeCrawler {
 	}
 	
 	// Remove duplicate entries
-	public static void stripDuplicatesFromFile(String filename) {
+	public void stripDuplicatesFromFile(String filename) {
+		int discoveredPeersTemp = 0;
 	    BufferedReader reader;
 		try {
 			reader = new BufferedReader(new FileReader(filename));
@@ -158,7 +120,9 @@ public class NodeCrawler {
 		    String line;
 		    while ((line = reader.readLine()) != null) {
 		        lines.add(line);
+		        discoveredPeersTemp++;
 		    }
+		    discoveredPeers = discoveredPeersTemp;
 		    reader.close();
 		    BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
 		    for (String unique : lines) {
@@ -170,5 +134,10 @@ public class NodeCrawler {
 			e.printStackTrace();
 		}
 	    
+	}
+	
+	public int getDiscoveredPeers()
+	{
+		return discoveredPeers;
 	}
 }
