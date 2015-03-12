@@ -3,6 +3,7 @@ package achow101;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -18,14 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.SimpleLogger;
 
-public class NodeCrawlerStandalone {
-	
-	
+public class BitcoinNodeCrawler {
 	
 	private static int connectedPeers;
 
 	// TODO: Make nice looking console GUI
-	// TODO: Add optional CLI options
 	
 	public static void main(String[] args) {
 		
@@ -51,7 +49,7 @@ public class NodeCrawlerStandalone {
 									.create( "nodefile" );
 		
 		Option testnet = new Option("testnet", "Use the Testnet3 network.");
-		Option help = new Option("help", "Print this help message");
+		Option help = new Option("h", "help", false, "Print this help message");
 		Option debug = new Option("debug", "Log Debug information");
 		
 		// Add CLI Options
@@ -82,13 +80,21 @@ public class NodeCrawlerStandalone {
 	        {
 	        	outfile = line.getOptionValue("nodefile");
 	        }
+	        
+	        if(line.hasOption("help"))
+	        {    	    
+	       	 // automatically generate the help statement
+	       	    HelpFormatter formatter = new HelpFormatter();
+	       	    formatter.printHelp( "bitcoinnodecrawler", options );
+	       	    return;
+	        }
 	    }
 	    catch( ParseException exp ) {
 	        // oops, something went wrong
 	        System.err.println( "Parsing failed.  Reason: " + exp.getMessage() );
 	    }
 	    
-		final Logger log = LoggerFactory.getLogger(NodeCrawlerStandalone.class);
+		final Logger log = LoggerFactory.getLogger(BitcoinNodeCrawler.class);
 	    
 		log.info("Network set to {}", mainTestRegNet);
 		
@@ -96,7 +102,7 @@ public class NodeCrawlerStandalone {
 		switch(mainTestRegNet)
 		{
 		// Testnet
-		case "Testnet":
+		case "testnet":
 			params = TestNet3Params.get();
 			break;
 		// Mainnet default
