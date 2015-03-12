@@ -37,12 +37,15 @@ public class NodeCrawler {
 	
 	private final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
 	
-	public NodeCrawler(PeerGroup peerGroup) {
-		
-		// This line makes the log output more compact and easily read, especially when using the JDK log adapter.
-        BriefLogFormatter.init();
-        
+	private String outfile = "Nodes.txt";
+	
+	public NodeCrawler(PeerGroup peerGroup, String filename) {
+		        
+		// Set Peer Group
         globalPeerGroup = peerGroup;
+        
+        // Set output file name
+        outfile = filename;
         
 		// Listen for new peer connections
 		globalPeerGroup.addEventListener(new AbstractPeerEventListener() {
@@ -63,7 +66,7 @@ public class NodeCrawler {
 		try
 		{
 			// Set file
-	        File file = new File("Nodes.txt");
+	        File file = new File(outfile);
 	        // Create file if it does not exist
 	    	if(!file.exists())
 	    	{
@@ -77,7 +80,7 @@ public class NodeCrawler {
 	    	pw.println(address.toString());
 	    	pw.close();
 	    	// Remove Duplicates
-	    	stripDuplicatesFromFile("Nodes.txt");
+	    	stripDuplicatesFromFile(outfile);
 	    	log.info("Recorded {}", address);
 		}
 		catch(IOException ioe){
