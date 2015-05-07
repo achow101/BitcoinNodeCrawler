@@ -1,5 +1,7 @@
 package achow101;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Scanner;
 
 import org.apache.commons.cli.BasicParser;
@@ -10,11 +12,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.bitcoinj.core.AbstractPeerEventListener;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Peer;
 import org.bitcoinj.core.PeerGroup;
-import org.bitcoinj.net.discovery.DnsDiscovery;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.slf4j.Logger;
@@ -23,7 +22,6 @@ import org.slf4j.impl.SimpleLogger;
 
 public class BitcoinNodeCrawler implements Runnable {
 	
-	private static int connectedPeers;
 	private static boolean quit = false;
 	
 	Scanner scan = new Scanner(System.in);
@@ -35,7 +33,10 @@ public class BitcoinNodeCrawler implements Runnable {
 
 		// Variables
 		String mainTestRegNet = "mainnet";
-		String outfile = "Nodes.txt";
+		InetSocketAddress fullNode;
+		int portNum = 8333;
+		int rpcPortNum = 8332;
+		String hostName = "localhost";
 		
 		// Set Logger Properties. Log outputs to CrawlerLog.txt
 		System.setProperty(SimpleLogger.LOG_FILE_KEY, "CrawlerLog.txt");
@@ -44,23 +45,34 @@ public class BitcoinNodeCrawler implements Runnable {
 		System.setProperty(SimpleLogger.SHOW_THREAD_NAME_KEY, "false");
 		System.setProperty(SimpleLogger.DATE_TIME_FORMAT_KEY, "HH:mm:ss:SS MM:DD:YYYY");
         
-		// Define CLI Options
-		@SuppressWarnings("static-access")
-		Option nodefile = OptionBuilder.withArgName( "file" )
-									.hasArg()
-									.withDescription(  "use given file for recording nodes. Default is Nodes.txt" )
-									.create( "nodefile" );
-		
+		// Define CLI Options		
 		Option testnet = new Option("testnet", "Use the Testnet3 network.");
 		Option help = new Option("h", "help", false, "Print this help message");
 		Option debug = new Option("debug", "Log Debug information");
+		@SuppressWarnings("static-access")
+		Option rpcport = OptionBuilder.withArgName( "rpcport" )
+                						.hasArg()
+                						.withDescription(  "Port for RPC connection to full node. Default 8332" )
+                						.create( "rpcport" );
+		@SuppressWarnings("static-access")
+		Option port = OptionBuilder.withArgName( "port" )
+                					.hasArg()
+                					.withDescription(  "The port for regular full node connections. Default 8333" )
+                					.create( "port" );
+		@SuppressWarnings("static-access")
+		Option hostname = OptionBuilder.withArgName( "hostname" )
+                						.hasArg()
+                						.withDescription(  "Hostname of the full node to connect to. Default localhost" )
+                						.create( "hostname" );
 		
 		// Add CLI Options
 		Options options = new Options();
 		options.addOption(help);
 		options.addOption(testnet);
 		options.addOption(debug);
-		options.addOption(nodefile);
+		options.addOption(port);
+		options.addOption(hostname);
+		options.addOption(rpcport);
 		
 		 // Command line Parser
 	    CommandLineParser parser = new BasicParser();
@@ -79,17 +91,25 @@ public class BitcoinNodeCrawler implements Runnable {
 	        	System.setProperty(SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "debug");
 	        }
 	        
-	        if(line.hasOption("nodefile"))
-	        {
-	        	outfile = line.getOptionValue("nodefile");
-	        }
-	        
 	        if(line.hasOption("help"))
 	        {    	    
 	       	 // automatically generate the help statement
 	       	    HelpFormatter formatter = new HelpFormatter();
 	       	    formatter.printHelp( "bitcoinnodecrawler", options );
 	       	    return;
+	        }
+	        
+	        if(line.hasOption("rpcport"))
+	        {
+	        	rpcPortNum = Integer.parseInt(line.getOptionValue("rpcport"));
+	        }
+	        if(line.hasOption("port"))
+	        {
+	        	portNum = Integer.parseInt(line.getOptionValue("port"));
+	        }
+	        if(line.hasOption("hostname"))
+	        {
+	        	hostName = line.getOptionValue("hostname");
 	        }
 	    }
 	    catch( ParseException exp ) {
@@ -100,6 +120,8 @@ public class BitcoinNodeCrawler implements Runnable {
 		final Logger log = LoggerFactory.getLogger(BitcoinNodeCrawler.class);
 		
 		log.info("Network set to {}", mainTestRegNet);
+		log.info("Connecting to full node {}:{}", hostName, port);
+		log.info("connecting to full node with RPCPort {}", rpcport);
 		
 		// Determine network for network parameters
 		switch(mainTestRegNet)
@@ -118,30 +140,14 @@ public class BitcoinNodeCrawler implements Runnable {
 		PeerGroup peerGroup = new PeerGroup(params);
 						
 		// Connect to network and start the PeerGroup thread
-		peerGroup.addPeerDiscovery(new DnsDiscovery(params));
+		peerGroup.connectTo(new InetSocketAddress(hostName, portNum));		// Connects to Localhost so that peers node connects to branches off from localhost
 		peerGroup.startAsync();
         
-		NodeCrawler nodeCrawler = new NodeCrawler(peerGroup, outfile);
-		
-		// Listen for new peer connections
-		peerGroup.addEventListener(new AbstractPeerEventListener() {
-		    @Override
-		    public void onPeerConnected(Peer peer, int peerCount) {
-		    	connectedPeers = peerGroup.numConnectedPeers();
-		    }
-		    @Override
-		    public void onPeerDisconnected(Peer peer, int peerCount)
-		    {
-		    	connectedPeers = peerGroup.numConnectedPeers();
-		    }
-		});
+		NodeCrawler nodeCrawler = new NodeCrawler(peerGroup);
 		
 		System.out.println("Bitcoin Node Crawler");
 		System.out.println("********************");
 		System.out.println("Options [q]uit");
-		System.out.println("\nStatistics");
-		System.out.println("**********");
-		System.out.println("Nodes connected:\t\tNodesDiscovered:");
 		
 		(new Thread(new BitcoinNodeCrawler())).start();
 
@@ -149,7 +155,6 @@ public class BitcoinNodeCrawler implements Runnable {
 		do
 		{
 			try {
-				System.out.print(connectedPeers + "\t\t\t\t" + nodeCrawler.getDiscoveredPeers() + "\r");
 				Thread.sleep(1000);
 				//System.out.print("\r");
 			} catch (InterruptedException e) {

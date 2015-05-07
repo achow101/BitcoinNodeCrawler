@@ -1,16 +1,7 @@
 package achow101;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.bitcoinj.core.AbstractPeerEventListener;
@@ -36,56 +27,22 @@ public class NodeCrawler {
 	
 	private final Logger log = LoggerFactory.getLogger(NodeCrawler.class);
 	
-	private String outfile = "Nodes.txt";
-	
-	public NodeCrawler(PeerGroup peerGroup, String filename) {
+	public NodeCrawler(PeerGroup peerGroup) {
 		        
 		// Set Peer Group
         globalPeerGroup = peerGroup;
-        
-        // Set output file name
-        outfile = filename;
         
 		// Listen for new peer connections
 		globalPeerGroup.addEventListener(new AbstractPeerEventListener() {
 		    @Override
 		    public void onPeerConnected(Peer peer, int peerCount) {
-		    	// Write peer to file
-		    	InetSocketAddress address = peer.getAddress().getSocketAddress();
-				addressToFile(address);
+		    	// Get addresses from peer
 				getMorePeerAddresses(peer);
+				// Disconnect peer to save memory
+				peer.close();
 		    }
 		});
 		
-	}
-	
-	// Writes out each address to a text file
-	private void addressToFile(InetSocketAddress address)
-	{
-		try
-		{
-			// Set file
-	        File file = new File(outfile);
-	        // Create file if it does not exist
-	    	if(!file.exists())
-	    	{
-	    		file.createNewFile();
-	    	}
-	    	// File Writers
-	    	FileWriter fw = new FileWriter(file,true);
-	    	BufferedWriter bw = new BufferedWriter(fw);
-	    	PrintWriter pw = new PrintWriter(bw);
-	    	// Write to file
-	    	pw.println(address.toString());
-	    	pw.close();
-	    	// Remove Duplicates
-	    	stripDuplicatesFromFile(outfile);
-	    	log.info("Recorded {}", address);
-		}
-		catch(IOException ioe){
-	    	 log.error("IOException occured.");
-	    	 ioe.printStackTrace();		
-		}
 	}
 	
 	// Get addresses from each peer
@@ -102,42 +59,12 @@ public class NodeCrawler {
 				InetSocketAddress address = addresses.get(i).getSocketAddress();
 				log.info("Found {} and attempting connection", address);
 				globalPeerGroup.connectTo(address);
-				// Write address to file
-				addressToFile(address);
+				// TODO: Add RPC Call to Bitcoin core to connect to this node.
+				// TODO: Add Redis connection and add this address to database provided it isn't already there.
 			}
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	// Remove duplicate entries
-	public void stripDuplicatesFromFile(String filename) {
-		int discoveredPeersTemp = 0;
-	    BufferedReader reader;
-		try {
-			reader = new BufferedReader(new FileReader(filename));
-			Set<String> lines = new HashSet<String>(10000);
-		    String line;
-		    while ((line = reader.readLine()) != null) {
-		        lines.add(line);
-		        discoveredPeersTemp++;
-		    }
-		    discoveredPeers = discoveredPeersTemp;
-		    reader.close();
-		    BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
-		    for (String unique : lines) {
-		        writer.write(unique);
-		        writer.newLine();
-		    }
-		    writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	    
-	}
-	
-	public int getDiscoveredPeers()
-	{
-		return discoveredPeers;
-	}
+
 }
